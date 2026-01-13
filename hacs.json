@@ -1,0 +1,12 @@
+{
+  "name": "slskd",
+  "logo": "logo.svg",
+  "content_in_root": false,
+  "domains": ["binary_sensor"],
+  "zip_release": true,
+  "filename": "slskd",
+  "type": "integration",
+  "homeassistant": "2023.10.0",
+  "render_readme": true,
+  "arch": ["x86_64", "aarch64", "armv7"]
+}
