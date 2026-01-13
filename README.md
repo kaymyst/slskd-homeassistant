@@ -18,6 +18,12 @@ Binary sensor for monitoring the slskd server (Soulseek daemon).
 
 ## Configuration
 
-- Enter **host** (e.g., `http://192.168.0.156:5030`)
+- Enter **host** (e.g., `http://[yourserverIP]:5030`)
 - Enter **API key**
 - The binary sensor will appear automatically
+
+## slskd api key
+
+- Edit slskd.yml and enter a key (16-255 character string) in web → authentication → api_keys → my_api_key → key
+- for now the role is readonly → role: readonly 
+- and cidr: 0.0.0.0/0,::/0
