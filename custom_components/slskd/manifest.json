@@ -1,7 +1,7 @@
 {
   "domain": "slskd",
   "name": "slskd Server integration",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "documentation": "https://github.com/kaymyst/slskd-homeassistant",
   "requirements": ["slskd-api>=0.1.5"],
   "codeowners": ["@kaymyst"],
