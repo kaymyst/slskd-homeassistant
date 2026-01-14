@@ -25,5 +25,5 @@ Binary sensor for monitoring the slskd server (Soulseek daemon).
 ## slskd api key
 
 - Edit slskd.yml and enter a key (16-255 character string) in web → authentication → api_keys → my_api_key → key
-- for now the role is readonly → role: readonly 
+- for now the role is readonly → role: readonly
 - and cidr: 0.0.0.0/0,::/0

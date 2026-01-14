@@ -28,6 +28,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     # Forward to binary_sensor platform (awaited)
-    await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor"])
+    await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "switch"])
 
     return True
