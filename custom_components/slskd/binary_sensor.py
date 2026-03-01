@@ -22,6 +22,7 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
             api_key=entry.data[CONF_API_KEY],
         )
         self.last_search_id: str | None = None
+        self.last_search_result_count: int | None = None
         super().__init__(
             hass,
             _LOGGER,
@@ -34,10 +35,28 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
         """Fetch data from slskd and log each poll."""
         _LOGGER.debug("Fetching slskd server state...")
         try:
-            return await self.hass.async_add_executor_job(self.client.server.state)
+            data = await self.hass.async_add_executor_job(self.client.server.state)
         except Exception as err:
             _LOGGER.error("Error fetching slskd server state: %s", err)
             raise UpdateFailed from err
+
+        if self.last_search_id:
+            try:
+                search_state = await self.hass.async_add_executor_job(
+                    self.client.searches.state, self.last_search_id
+                )
+                self.last_search_result_count = search_state.get("fileCount")
+                _LOGGER.debug(
+                    "Search %s result count: %s",
+                    self.last_search_id,
+                    self.last_search_result_count,
+                )
+            except Exception as err:
+                _LOGGER.warning(
+                    "Could not fetch search results for %s: %s", self.last_search_id, err
+                )
+
+        return data
 
 
 async def async_setup_entry(
