@@ -1,9 +1,10 @@
+from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
-from .const import DOMAIN
+from .const import DOMAIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
 from .binary_sensor import SlskdDataUpdateCoordinator
 import logging
 
@@ -41,6 +42,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
+
+    # Update coordinator interval when options change
+    async def _async_options_updated(hass, entry):
+        scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        coordinator.update_interval = timedelta(seconds=scan_interval)
+        await coordinator.async_request_refresh()
+
+    entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
     # Forward to binary_sensor platform (awaited)
     await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "switch", "sensor"])

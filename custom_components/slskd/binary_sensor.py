@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, CONF_HOST, CONF_API_KEY, DEFAULT_SCAN_INTERVAL
+from .const import DOMAIN, CONF_HOST, CONF_API_KEY, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,11 +31,12 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
         self.last_download_bytes_transferred: int | None = None
         self.last_download_size: int | None = None
         self.last_download_average_speed: float | None = None
+        scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         super().__init__(
             hass,
             _LOGGER,
             name="slskd server state",
-            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
+            update_interval=timedelta(seconds=scan_interval),
             update_method=self.async_update_data,
         )
 
