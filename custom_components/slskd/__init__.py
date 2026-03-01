@@ -76,6 +76,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 username,
                 [{"filename": filename}],
             )
+            coordinator.last_download_username = username
+            coordinator.last_download_filename = filename
+            coordinator.last_download_state = "Queued"
+            coordinator.last_download_bytes_transferred = 0
+            coordinator.last_download_size = None
+            coordinator.last_download_average_speed = None
             _LOGGER.info("Download enqueued: %s from %s", filename, username)
         except Exception as err:
             _LOGGER.error("Failed to enqueue download: %s", err)
