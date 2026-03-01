@@ -117,15 +117,11 @@ def _extract_top_results(responses, limit: int = 10) -> list:
     for response in responses or []:
         username = response.get("username", "")
         for f in response.get("files", []):
-            bitrate = next(
-                (a["value"] for a in f.get("attributes", []) if a.get("attribute") == 0),
-                0,
-            )
             files.append({
                 "username": username,
                 "filename": f.get("filename", ""),
                 "size": f.get("size", 0),
-                "bitrate": bitrate,
+                "bitrate": f.get("bitRate", 0),
             })
     files.sort(key=lambda x: (x["bitrate"], x["size"]), reverse=True)
     return files[:limit]
