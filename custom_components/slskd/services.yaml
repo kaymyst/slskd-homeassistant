@@ -9,3 +9,24 @@ search:
       example: "Pink Floyd - The Wall"
       selector:
         text:
+
+download:
+  name: Download
+  description: >
+    Enqueue a file download from a specific peer. Use the username and filename
+    from the results attribute of sensor.slskd_last_search_result_total.
+  fields:
+    username:
+      name: Username
+      description: The Soulseek username of the peer to download from.
+      required: true
+      example: "some_peer"
+      selector:
+        text:
+    filename:
+      name: Filename
+      description: The full remote path of the file to download.
+      required: true
+      example: "\\Music\\Artist\\Album\\song.mp3"
+      selector:
+        text:

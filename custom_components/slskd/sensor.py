@@ -38,7 +38,11 @@ class SlskdSearchResultSensor(SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        return {"search_id": self.coordinator.last_search_id}
+        return {
+            "search_id": self.coordinator.last_search_id,
+            "search_state": self.coordinator.last_search_state,
+            "results": self.coordinator.last_search_results,
+        }
 
     @property
     def available(self) -> bool:

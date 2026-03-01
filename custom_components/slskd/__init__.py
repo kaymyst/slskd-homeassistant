@@ -14,6 +14,12 @@ SEARCH_SERVICE_SCHEMA = vol.Schema({
     vol.Required("search_text"): cv.string,
 })
 
+DOWNLOAD_SERVICE = "download"
+DOWNLOAD_SERVICE_SCHEMA = vol.Schema({
+    vol.Required("username"): cv.string,
+    vol.Required("filename"): cv.string,
+})
+
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the integration (nothing to do for YAML)."""
@@ -48,6 +54,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             )
             search_id = result.get("id")
             coordinator.last_search_id = search_id
+            coordinator.last_search_results = None
+            coordinator.last_search_state = None
             _LOGGER.info("Search started: '%s' (id=%s)", search_text, search_id)
         except Exception as err:
             _LOGGER.error("Failed to initiate slskd search: %s", err)
@@ -55,6 +63,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     if not hass.services.has_service(DOMAIN, SEARCH_SERVICE):
         hass.services.async_register(
             DOMAIN, SEARCH_SERVICE, handle_search, schema=SEARCH_SERVICE_SCHEMA
+        )
+
+    async def handle_download(call: ServiceCall) -> None:
+        """Enqueue a download on the slskd server."""
+        username = call.data["username"]
+        filename = call.data["filename"]
+        _LOGGER.debug("Enqueueing download: %s from %s", filename, username)
+        try:
+            await hass.async_add_executor_job(
+                coordinator.client.transfers.enqueue,
+                username,
+                [{"filename": filename}],
+            )
+            _LOGGER.info("Download enqueued: %s from %s", filename, username)
+        except Exception as err:
+            _LOGGER.error("Failed to enqueue download: %s", err)
+
+    if not hass.services.has_service(DOMAIN, DOWNLOAD_SERVICE):
+        hass.services.async_register(
+            DOMAIN, DOWNLOAD_SERVICE, handle_download, schema=DOWNLOAD_SERVICE_SCHEMA
         )
 
     return True
