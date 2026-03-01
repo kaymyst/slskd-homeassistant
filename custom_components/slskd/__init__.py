@@ -18,6 +18,7 @@ DOWNLOAD_SERVICE = "download"
 DOWNLOAD_SERVICE_SCHEMA = vol.Schema({
     vol.Required("username"): cv.string,
     vol.Required("filename"): cv.string,
+    vol.Optional("size"): vol.Coerce(int),
 })
 
 
@@ -69,12 +70,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         """Enqueue a download on the slskd server."""
         username = call.data["username"]
         filename = call.data["filename"]
-        _LOGGER.debug("Enqueueing download: %s from %s", filename, username)
+        size = call.data.get("size")
+        _LOGGER.debug("Enqueueing download: %s from %s (size=%s)", filename, username, size)
+        file_entry = {"filename": filename}
+        if size is not None:
+            file_entry["size"] = size
         try:
             await hass.async_add_executor_job(
                 coordinator.client.transfers.enqueue,
                 username,
-                [{"filename": filename}],
+                [file_entry],
             )
             coordinator.last_download_username = username
             coordinator.last_download_filename = filename
