@@ -48,14 +48,11 @@ class SlskdConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return SlskdOptionsFlowHandler(config_entry)
+        return SlskdOptionsFlowHandler()
 
 
 class SlskdOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options for slskd integration."""
-
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         import voluptuous as vol
