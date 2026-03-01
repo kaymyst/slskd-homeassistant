@@ -23,6 +23,8 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self.last_search_id: str | None = None
         self.last_search_result_count: int | None = None
+        self.last_search_state: str | None = None
+        self.last_search_results: list | None = None
         super().__init__(
             hass,
             _LOGGER,
@@ -46,17 +48,46 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
                     self.client.searches.state, self.last_search_id
                 )
                 self.last_search_result_count = search_state.get("fileCount")
+                self.last_search_state = search_state.get("state")
                 _LOGGER.debug(
-                    "Search %s result count: %s",
+                    "Search %s state=%s file_count=%s",
                     self.last_search_id,
+                    self.last_search_state,
                     self.last_search_result_count,
                 )
+
+                if self.last_search_state == "Completed" and self.last_search_results is None:
+                    responses = await self.hass.async_add_executor_job(
+                        self.client.searches.search_responses, self.last_search_id
+                    )
+                    self.last_search_results = _extract_top_results(responses)
+                    _LOGGER.debug("Stored %d top results", len(self.last_search_results))
             except Exception as err:
                 _LOGGER.warning(
                     "Could not fetch search results for %s: %s", self.last_search_id, err
                 )
 
         return data
+
+
+def _extract_top_results(responses, limit: int = 10) -> list:
+    """Flatten search responses into a sorted top-N file list."""
+    files = []
+    for response in responses or []:
+        username = response.get("username", "")
+        for f in response.get("files", []):
+            bitrate = next(
+                (a["value"] for a in f.get("attributes", []) if a.get("attribute") == 0),
+                0,
+            )
+            files.append({
+                "username": username,
+                "filename": f.get("filename", ""),
+                "size": f.get("size", 0),
+                "bitrate": bitrate,
+            })
+    files.sort(key=lambda x: (x["bitrate"], x["size"]), reverse=True)
+    return files[:limit]
 
 
 async def async_setup_entry(
