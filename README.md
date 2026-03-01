@@ -29,13 +29,13 @@ Reports whether slskd is connected to the Soulseek network.
 
 ### `sensor.slskd_last_search_result_total`
 
-Tracks the result count and top results of the most recent search. The state value is the total number of files found. Once the search reaches `Completed`, the `results` attribute is populated with the top 10 files sorted by bitrate (highest first), then by size.
+Tracks the result count and top results of the most recent search. The state value is the total number of files found. Once the search reaches `Completed`, the `results` attribute is populated with the top 10 files sorted by upload speed (highest first), then bitrate, then size.
 
 | Attribute | Description |
 |-----------|-------------|
 | `search_id` | UUID of the active search |
 | `search_state` | `InProgress` or `Completed` |
-| `results` | List of up to 10 files, each with `username`, `filename`, `size`, `bitrate` |
+| `results` | List of up to 10 files, each with `username`, `filename`, `size`, `bitrate`, `upload_speed` |
 
 Example `results` entry:
 ```yaml
@@ -43,6 +43,7 @@ username: "some_peer"
 filename: "\\Music\\Artist\\Album\\song.mp3"
 size: 12345678
 bitrate: 320
+upload_speed: 1048576
 ```
 
 ### `sensor.slskd_last_download_status`
@@ -87,12 +88,13 @@ data:
 
 ### `slskd.download`
 
-Enqueues a file download from a specific peer. Use the `username` and `filename` values from the `results` attribute of `sensor.slskd_last_search_result_total`.
+Enqueues a file download from a specific peer. Use the `username`, `filename`, and `size` values from the `results` attribute of `sensor.slskd_last_search_result_total`.
 
 | Field | Required | Description |
 |-------|----------|-------------|
 | `username` | Yes | Soulseek username of the peer |
 | `filename` | Yes | Full remote file path |
+| `size` | No | File size in bytes. **Strongly recommended** — without it slskd passes `0` to the protocol and the transfer will abort immediately with a size mismatch error |
 
 Example — download the top result automatically:
 
@@ -101,6 +103,7 @@ action: slskd.download
 data:
   username: "{{ state_attr('sensor.slskd_last_search_result_total', 'results')[0].username }}"
   filename: "{{ state_attr('sensor.slskd_last_search_result_total', 'results')[0].filename }}"
+  size: "{{ state_attr('sensor.slskd_last_search_result_total', 'results')[0].size }}"
 ```
 
 > **Note:** The API key requires `readwrite` access to use `slskd.search` and `slskd.download`.
