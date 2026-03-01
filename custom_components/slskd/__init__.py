@@ -36,7 +36,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     # Forward to binary_sensor platform (awaited)
-    await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "switch"])
+    await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "switch", "sensor"])
 
     async def handle_search(call: ServiceCall) -> None:
         """Initiate a search on the slskd server."""
