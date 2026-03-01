@@ -105,20 +105,19 @@ def _normalise_path(p: str) -> str:
 def _find_download(downloads, filename: str) -> dict | None:
     """Find a specific file transfer in the downloads response.
 
-    slskd returns downloads as a list of directory groups:
-      [{"directory": "...", "files": [{transfer}, ...]}, ...]
-    Each transfer object has a "filename" key with the full remote path.
+    The user-specific endpoint returns a single user object:
+      {"username": "...", "directories": [{"directory": "...", "files": [{transfer}]}]}
+    The all-users endpoint returns a list of such objects.
+    Both shapes are handled here.
     """
     target = _normalise_path(filename)
-    for entry in downloads or []:
-        # Flat transfer object (defensive)
-        if "filename" in entry:
-            if _normalise_path(entry["filename"]) == target:
-                return entry
-        # Directory-grouped response (normal slskd API shape)
-        for f in entry.get("files", []):
-            if _normalise_path(f.get("filename", "")) == target:
-                return f
+    # Normalise to a list of user objects regardless of which endpoint was called.
+    user_objects = [downloads] if isinstance(downloads, dict) else (downloads or [])
+    for user_obj in user_objects:
+        for directory in user_obj.get("directories", []):
+            for f in directory.get("files", []):
+                if _normalise_path(f.get("filename", "")) == target:
+                    return f
     return None
 
 
