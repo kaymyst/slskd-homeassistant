@@ -25,6 +25,12 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
         self.last_search_result_count: int | None = None
         self.last_search_state: str | None = None
         self.last_search_results: list | None = None
+        self.last_download_username: str | None = None
+        self.last_download_filename: str | None = None
+        self.last_download_state: str | None = None
+        self.last_download_bytes_transferred: int | None = None
+        self.last_download_size: int | None = None
+        self.last_download_average_speed: float | None = None
         super().__init__(
             hass,
             _LOGGER,
@@ -67,7 +73,42 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
                     "Could not fetch search results for %s: %s", self.last_search_id, err
                 )
 
+        if self.last_download_username and self.last_download_filename:
+            try:
+                downloads = await self.hass.async_add_executor_job(
+                    self.client.transfers.get_downloads, self.last_download_username
+                )
+                transfer = _find_download(downloads, self.last_download_filename)
+                if transfer:
+                    self.last_download_state = transfer.get("state")
+                    self.last_download_bytes_transferred = transfer.get("bytesTransferred")
+                    self.last_download_size = transfer.get("size")
+                    self.last_download_average_speed = transfer.get("averageSpeed")
+                    _LOGGER.debug(
+                        "Download %s state=%s bytes=%s/%s",
+                        self.last_download_filename,
+                        self.last_download_state,
+                        self.last_download_bytes_transferred,
+                        self.last_download_size,
+                    )
+            except Exception as err:
+                _LOGGER.warning("Could not fetch download status: %s", err)
+
         return data
+
+
+def _find_download(downloads, filename: str) -> dict | None:
+    """Find a specific file transfer in the downloads response."""
+    for entry in downloads or []:
+        # Response may be a flat list of transfer objects or nested under directories
+        if "filename" in entry:
+            if entry["filename"] == filename:
+                return entry
+        for directory in entry.get("directories", []):
+            for f in directory.get("files", []):
+                if f.get("filename") == filename:
+                    return f
+    return None
 
 
 def _extract_top_results(responses, limit: int = 10) -> list:
