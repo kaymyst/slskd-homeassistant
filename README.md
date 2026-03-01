@@ -8,6 +8,8 @@ Binary sensor for monitoring the slskd server (Soulseek daemon).
   - Attributes: `username`, `listen_port`, `uptime`
 - Sensor `sensor.slskd_last_search_result_total` — live file count for the active search
   - Attributes: `search_id`, `search_state`, `results` (top 10 files sorted by bitrate)
+- Sensor `sensor.slskd_last_download_status` — live transfer status for the last enqueued download
+  - Attributes: `username`, `filename`, `full_path`, `bytes_transferred`, `size`, `average_speed_bps`, `progress_pct`
 - Service `slskd.search` — initiate a search on the Soulseek network
 - Service `slskd.download` — enqueue a file download from a peer
 - Automatic polling every 30 seconds
@@ -42,6 +44,28 @@ filename: "\\Music\\Artist\\Album\\song.mp3"
 size: 12345678
 bitrate: 320
 ```
+
+### `sensor.slskd_last_download_status`
+
+Tracks the transfer state of the most recently enqueued download. The state value reflects the slskd transfer lifecycle. The sensor is seeded with `Queued` immediately after `slskd.download` is called, then updates every 30 seconds until the transfer finishes.
+
+| State | Meaning |
+|-------|---------|
+| `Queued` | Waiting in the peer's upload queue |
+| `InProgress` | Actively transferring |
+| `Completed` | Transfer finished successfully |
+| `Errored` | Transfer failed |
+| `Cancelled` | Transfer was cancelled |
+
+| Attribute | Description |
+|-----------|-------------|
+| `username` | Peer the file is from |
+| `filename` | Short filename (leaf only) |
+| `full_path` | Full remote file path |
+| `bytes_transferred` | Bytes downloaded so far |
+| `size` | Total file size in bytes |
+| `average_speed_bps` | Current average transfer speed in bytes/sec |
+| `progress_pct` | Percentage complete (0–100), present when `size` is known |
 
 ## Services
 
