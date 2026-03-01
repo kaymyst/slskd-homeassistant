@@ -21,6 +21,7 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
             host=entry.data[CONF_HOST],
             api_key=entry.data[CONF_API_KEY],
         )
+        self.last_search_id: str | None = None
         super().__init__(
             hass,
             _LOGGER,
