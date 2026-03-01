@@ -62,7 +62,7 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
                     self.last_search_result_count,
                 )
 
-                if self.last_search_state == "Completed" and self.last_search_results is None:
+                if self.last_search_state and self.last_search_state.startswith("Completed") and self.last_search_results is None:
                     responses = await self.hass.async_add_executor_job(
                         self.client.searches.search_responses, self.last_search_id
                     )
