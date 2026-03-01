@@ -97,17 +97,28 @@ class SlskdDataUpdateCoordinator(DataUpdateCoordinator):
         return data
 
 
+def _normalise_path(p: str) -> str:
+    """Strip leading backslashes and normalise separators for comparison."""
+    return p.replace("\\\\", "\\").lstrip("\\")
+
+
 def _find_download(downloads, filename: str) -> dict | None:
-    """Find a specific file transfer in the downloads response."""
+    """Find a specific file transfer in the downloads response.
+
+    slskd returns downloads as a list of directory groups:
+      [{"directory": "...", "files": [{transfer}, ...]}, ...]
+    Each transfer object has a "filename" key with the full remote path.
+    """
+    target = _normalise_path(filename)
     for entry in downloads or []:
-        # Response may be a flat list of transfer objects or nested under directories
+        # Flat transfer object (defensive)
         if "filename" in entry:
-            if entry["filename"] == filename:
+            if _normalise_path(entry["filename"]) == target:
                 return entry
-        for directory in entry.get("directories", []):
-            for f in directory.get("files", []):
-                if f.get("filename") == filename:
-                    return f
+        # Directory-grouped response (normal slskd API shape)
+        for f in entry.get("files", []):
+            if _normalise_path(f.get("filename", "")) == target:
+                return f
     return None
 
 
