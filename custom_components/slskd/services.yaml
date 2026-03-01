@@ -1,0 +1,11 @@
+search:
+  name: Search
+  description: Initiate a file search on the slskd server.
+  fields:
+    search_text:
+      name: Search text
+      description: The search term to look for on the Soulseek network.
+      required: true
+      example: "Pink Floyd - The Wall"
+      selector:
+        text:

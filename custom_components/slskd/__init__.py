@@ -1,11 +1,19 @@
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
+import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
 from .const import DOMAIN
 from .binary_sensor import SlskdDataUpdateCoordinator
 import logging
 
 _LOGGER = logging.getLogger(__name__)
+
+SEARCH_SERVICE = "search"
+SEARCH_SERVICE_SCHEMA = vol.Schema({
+    vol.Required("search_text"): cv.string,
+})
+
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the integration (nothing to do for YAML)."""
@@ -29,5 +37,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     # Forward to binary_sensor platform (awaited)
     await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "switch"])
+
+    async def handle_search(call: ServiceCall) -> None:
+        """Initiate a search on the slskd server."""
+        search_text = call.data["search_text"]
+        _LOGGER.debug("Initiating slskd search for: %s", search_text)
+        try:
+            result = await hass.async_add_executor_job(
+                coordinator.client.searches.search_text, search_text
+            )
+            search_id = result.get("id")
+            coordinator.last_search_id = search_id
+            _LOGGER.info("Search started: '%s' (id=%s)", search_text, search_id)
+        except Exception as err:
+            _LOGGER.error("Failed to initiate slskd search: %s", err)
+
+    if not hass.services.has_service(DOMAIN, SEARCH_SERVICE):
+        hass.services.async_register(
+            DOMAIN, SEARCH_SERVICE, handle_search, schema=SEARCH_SERVICE_SCHEMA
+        )
 
     return True
