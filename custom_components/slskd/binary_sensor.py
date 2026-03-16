@@ -134,6 +134,8 @@ def _extract_top_results(responses, limit: int = 10) -> list:
                 "filename": f.get("filename", ""),
                 "size": f.get("size", 0),
                 "bitrate": f.get("bitRate", 0),
+                "bit_depth": f.get("bitDepth", 0),
+                "sample_rate": f.get("sampleRate", 0),
                 "upload_speed": upload_speed,
             })
     files.sort(key=lambda x: (x["upload_speed"], x["bitrate"], x["size"]), reverse=True)
