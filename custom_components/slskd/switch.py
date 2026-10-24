@@ -1,18 +1,30 @@
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import DOMAIN, ROLE_READWRITE
 from .binary_sensor import SlskdDataUpdateCoordinator
+from .helpers import get_role
+
+UNIQUE_ID = "slskd_connection_switch"
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
     """Set up the switch."""
     coordinator: SlskdDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([SlskdConnectionSwitch(coordinator)])
+    # Connect/disconnect needs a readwrite key on slskd 0.26.2+
+    if get_role(entry) == ROLE_READWRITE:
+        async_add_entities([SlskdConnectionSwitch(coordinator)])
+        return
+    # Drop a switch left over from when the key was readwrite
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id("switch", DOMAIN, UNIQUE_ID)
+    if entity_id:
+        registry.async_remove(entity_id)
 
 
 class SlskdConnectionSwitch(CoordinatorEntity, SwitchEntity):
@@ -21,7 +33,7 @@ class SlskdConnectionSwitch(CoordinatorEntity, SwitchEntity):
     def __init__(self, coordinator: SlskdDataUpdateCoordinator):
         super().__init__(coordinator)
         self._attr_name = "slskd Connection"
-        self._attr_unique_id = "slskd_connection_switch"
+        self._attr_unique_id = UNIQUE_ID
         self._attr_icon = "mdi:connection"
 
     @property

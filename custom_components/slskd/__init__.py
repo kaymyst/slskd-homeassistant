@@ -1,11 +1,12 @@
 from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
-from .const import DOMAIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+from .const import DOMAIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, CONF_API_KEY_ROLE, ROLE_READWRITE
 from .binary_sensor import SlskdDataUpdateCoordinator
+from .helpers import detect_role, get_role
 import logging
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,6 +22,8 @@ DOWNLOAD_SERVICE_SCHEMA = vol.Schema({
     vol.Required("filename"): cv.string,
     vol.Optional("size"): vol.Coerce(int),
 })
+
+PLATFORMS = ["binary_sensor", "switch", "sensor"]
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -40,23 +43,48 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         _LOGGER.error("Failed to connect to slskd server: %s", err)
         raise ConfigEntryNotReady from err
 
+    # Entries created before the role option existed: probe the key once and save it
+    role = get_role(entry)
+    if role is None:
+        try:
+            role = await hass.async_add_executor_job(detect_role, coordinator.client)
+        except Exception as err:
+            _LOGGER.error("Failed to detect slskd API key role: %s", err)
+            raise ConfigEntryNotReady from err
+        _LOGGER.info("Detected slskd API key role: %s", role)
+        hass.config_entries.async_update_entry(
+            entry, data={**entry.data, CONF_API_KEY_ROLE: role}
+        )
+
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     # Update coordinator interval when options change
     async def _async_options_updated(hass, entry):
+        # Entities depend on the role, so reload when it changes
+        if get_role(entry) != role:
+            await hass.config_entries.async_reload(entry.entry_id)
+            return
         scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         coordinator.update_interval = timedelta(seconds=scan_interval)
         await coordinator.async_request_refresh()
 
     entry.async_on_unload(entry.add_update_listener(_async_options_updated))
 
-    # Forward to binary_sensor platform (awaited)
-    await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "switch", "sensor"])
+    # Forward to platforms (awaited)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    def _require_readwrite(action: str) -> None:
+        if get_role(entry) != ROLE_READWRITE:
+            raise HomeAssistantError(
+                f"Cannot {action}: the slskd API key is readonly. Use a readwrite "
+                "key and set the API key role to readwrite in the integration options."
+            )
 
     async def handle_search(call: ServiceCall) -> None:
         """Initiate a search on the slskd server."""
         search_text = call.data["search_text"]
+        _require_readwrite("start a search")
         _LOGGER.debug("Initiating slskd search for: %s", search_text)
         try:
             result = await hass.async_add_executor_job(
@@ -80,6 +108,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         username = call.data["username"]
         filename = call.data["filename"]
         size = call.data.get("size")
+        _require_readwrite("enqueue a download")
         _LOGGER.debug("Enqueueing download: %s from %s (size=%s)", filename, username, size)
         file_entry = {"filename": filename}
         if size is not None:
@@ -106,3 +135,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
 
     return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+        # Services capture this entry's coordinator; drop them so a reload re-registers fresh ones
+        if not hass.data[DOMAIN]:
+            hass.services.async_remove(DOMAIN, SEARCH_SERVICE)
+            hass.services.async_remove(DOMAIN, DOWNLOAD_SERVICE)
+    return unload_ok

@@ -1,0 +1,33 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to slskd",
+        "description": "Choose readonly if your API key only has read access. The connection switch and the search and download services need a readwrite key.",
+        "data": {
+          "host": "Host URL",
+          "api_key": "API key",
+          "api_key_role": "API key role"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect. Check the host URL and API key.",
+      "readonly_key": "This API key is readonly on the slskd server. Choose readonly, or give the key the readwrite role in slskd.yml."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "scan_interval": "Scan interval (seconds)",
+          "api_key_role": "API key role"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect. Check the slskd server is running.",
+      "readonly_key": "This API key is readonly on the slskd server. Choose readonly, or give the key the readwrite role in slskd.yml."
+    }
+  }
+}
