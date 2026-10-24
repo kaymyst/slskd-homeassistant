@@ -1,10 +1,10 @@
 from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.exceptions import ConfigEntryNotReady
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
-from .const import DOMAIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, CONF_API_KEY_ROLE, ROLE_READWRITE
+from .const import DOMAIN, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, CONF_API_KEY_ROLE, ROLE_ADMINISTRATOR, ROLE_READWRITE
 from .binary_sensor import SlskdDataUpdateCoordinator
 from .helpers import detect_role, get_role
 import logging
@@ -29,6 +29,22 @@ PLATFORMS = ["binary_sensor", "switch", "sensor"]
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the integration (nothing to do for YAML)."""
     return True
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate old config entries."""
+    if entry.version == 1 and entry.minor_version < 2:
+        # 1.1 saved "readwrite" only for keys that could read GET /api/v0/server,
+        # which slskd restricts to administrator keys
+        def _fix(d):
+            if d.get(CONF_API_KEY_ROLE) == ROLE_READWRITE:
+                return {**d, CONF_API_KEY_ROLE: ROLE_ADMINISTRATOR}
+            return d
+
+        hass.config_entries.async_update_entry(
+            entry, data=_fix(entry.data), options=_fix(entry.options), minor_version=2
+        )
+    return True
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up slskd from a config entry."""
@@ -74,17 +90,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # Forward to platforms (awaited)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    def _require_readwrite(action: str) -> None:
-        if get_role(entry) != ROLE_READWRITE:
-            raise HomeAssistantError(
-                f"Cannot {action}: the slskd API key is readonly. Use a readwrite "
-                "key and set the API key role to readwrite in the integration options."
-            )
-
     async def handle_search(call: ServiceCall) -> None:
         """Initiate a search on the slskd server."""
         search_text = call.data["search_text"]
-        _require_readwrite("start a search")
         _LOGGER.debug("Initiating slskd search for: %s", search_text)
         try:
             result = await hass.async_add_executor_job(
@@ -108,7 +116,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         username = call.data["username"]
         filename = call.data["filename"]
         size = call.data.get("size")
-        _require_readwrite("enqueue a download")
         _LOGGER.debug("Enqueueing download: %s from %s (size=%s)", filename, username, size)
         file_entry = {"filename": filename}
         if size is not None:

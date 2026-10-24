@@ -10,8 +10,8 @@ from .const import (
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     API_KEY_ROLES,
+    ROLE_ADMINISTRATOR,
     ROLE_READONLY,
-    ROLE_READWRITE,
 )
 
 
@@ -24,8 +24,8 @@ def _check_key(host: str, api_key: str, role: str) -> str | None:
         client = SlskdClient(host=host, api_key=api_key)
         if not get_server_state(client):
             return "cannot_connect"
-        if role == ROLE_READWRITE and detect_role(client) != ROLE_READWRITE:
-            return "readonly_key"
+        if role == ROLE_ADMINISTRATOR and detect_role(client) != ROLE_ADMINISTRATOR:
+            return "not_administrator"
     except Exception:
         return "cannot_connect"
     return None
@@ -35,6 +35,7 @@ class SlskdConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for slskd."""
 
     VERSION = 1
+    MINOR_VERSION = 2
     CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     async def async_step_user(self, user_input=None):
@@ -85,14 +86,14 @@ class SlskdOptionsFlowHandler(config_entries.OptionsFlow):
         errors = {}
 
         if user_input is not None:
-            # Only switching to readwrite needs the server to confirm the key's permissions
+            # Only switching to administrator needs the server to confirm the key's permissions
             error = None
-            if user_input[CONF_API_KEY_ROLE] == ROLE_READWRITE:
+            if user_input[CONF_API_KEY_ROLE] == ROLE_ADMINISTRATOR:
                 error = await self.hass.async_add_executor_job(
                     _check_key,
                     entry.data[CONF_HOST],
                     entry.data[CONF_API_KEY],
-                    ROLE_READWRITE,
+                    ROLE_ADMINISTRATOR,
                 )
             if error:
                 errors["base"] = error

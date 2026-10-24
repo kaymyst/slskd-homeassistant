@@ -106,7 +106,7 @@ data:
   size: "{{ state_attr('sensor.slskd_last_search_result_total', 'results')[0].size }}"
 ```
 
-> **Note:** The API key requires `readwrite` access to use `slskd.search` and `slskd.download`. With a `readonly` key these services return an error.
+> **Note:** `slskd.search` and `slskd.download` work with any API key role, including `readonly`.
 
 ## Installation via HACS
 
@@ -119,13 +119,13 @@ data:
 
 - Enter **host** (e.g., `http://[yourserverIP]:5030`)
 - Enter **API key**
-- Choose the **API key role** matching the key's `role` in slskd.yml (`readonly` or `readwrite`)
+- Choose the **API key role** matching the key's `role` in slskd.yml (`readonly`, `readwrite` or `administrator`)
 - The binary sensor will appear automatically
 
-With a `readonly` key, the `switch.slskd_connection` switch is not created (slskd 0.26.2+ only lets `readwrite` keys connect/disconnect the server). The role can be changed later via the integration's **Configure** dialog. Entries set up before this option existed detect the role automatically on first start.
+The `switch.slskd_connection` switch is only created for an `administrator` key (slskd 0.26.2+ only lets administrator keys read the server state and connect/disconnect). With a `readonly` or `readwrite` key, use `binary_sensor.slskd_connected` to see the connection state. The role can be changed later via the integration's **Configure** dialog. Entries set up before this option existed detect the role automatically on first start.
 
 ## slskd api key
 
 - Edit slskd.yml and enter a key (16-255 character string) in web → authentication → api_keys → my_api_key → key
-- role: `readonly` is sufficient for monitoring only; use `readwrite` to also use the `slskd.search` service
+- role: `readonly` is enough for the sensors and the `slskd.search` / `slskd.download` services; use `administrator` to also get the connect/disconnect switch
 - and cidr: 0.0.0.0/0,::/0
