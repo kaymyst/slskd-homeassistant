@@ -1,7 +1,7 @@
 import requests
 from slskd_api import SlskdClient
 
-from .const import CONF_API_KEY_ROLE, ROLE_READONLY, ROLE_READWRITE
+from .const import CONF_API_KEY_ROLE, ROLE_ADMINISTRATOR, ROLE_READONLY
 
 
 def get_server_state(client: SlskdClient) -> dict:
@@ -22,10 +22,11 @@ def get_role(entry) -> str | None:
 
 
 def detect_role(client: SlskdClient) -> str:
-    """Probe GET /api/v0/server, which slskd 0.26.2+ restricts to readwrite keys.
+    """Probe GET /api/v0/server, which slskd 0.26.2+ restricts to administrator keys.
 
-    Only an authorization error means the key is readonly; any other error
-    (server down, timeout) is raised so the caller can retry later.
+    Only an authorization error means the key is not an administrator key (readonly
+    and readwrite can't be told apart here, and behave the same in this integration);
+    any other error (server down, timeout) is raised so the caller can retry later.
     """
     try:
         client.server.state()
@@ -33,4 +34,4 @@ def detect_role(client: SlskdClient) -> str:
         if err.response is not None and err.response.status_code in (401, 403):
             return ROLE_READONLY
         raise
-    return ROLE_READWRITE
+    return ROLE_ADMINISTRATOR

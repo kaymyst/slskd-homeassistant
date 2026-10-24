@@ -5,7 +5,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, ROLE_READWRITE
+from .const import DOMAIN, ROLE_ADMINISTRATOR
 from .binary_sensor import SlskdDataUpdateCoordinator
 from .helpers import get_role
 
@@ -16,11 +16,11 @@ async def async_setup_entry(
 ):
     """Set up the switch."""
     coordinator: SlskdDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
-    # Connect/disconnect needs a readwrite key on slskd 0.26.2+
-    if get_role(entry) == ROLE_READWRITE:
+    # Connect/disconnect needs an administrator key on slskd 0.26.2+
+    if get_role(entry) == ROLE_ADMINISTRATOR:
         async_add_entities([SlskdConnectionSwitch(coordinator)])
         return
-    # Drop a switch left over from when the key was readwrite
+    # Drop a switch left over from when the key was administrator
     registry = er.async_get(hass)
     entity_id = registry.async_get_entity_id("switch", DOMAIN, UNIQUE_ID)
     if entity_id:

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Connect to slskd",
-        "description": "Choose readonly if your API key only has read access. The connection switch and the search and download services need a readwrite key.",
+        "description": "Choose the role set for this API key in slskd.yml. Search and download work with any role; the connect/disconnect switch needs an administrator key.",
         "data": {
           "host": "Host URL",
           "api_key": "API key",
@@ -13,7 +13,7 @@
     },
     "error": {
       "cannot_connect": "Failed to connect. Check the host URL and API key.",
-      "readonly_key": "This API key is readonly on the slskd server. Choose readonly, or give the key the readwrite role in slskd.yml."
+      "not_administrator": "This API key is not an administrator key on the slskd server. Choose the role set for the key in slskd.yml, or change it to administrator."
     }
   },
   "options": {
@@ -27,7 +27,7 @@
     },
     "error": {
       "cannot_connect": "Failed to connect. Check the slskd server is running.",
-      "readonly_key": "This API key is readonly on the slskd server. Choose readonly, or give the key the readwrite role in slskd.yml."
+      "not_administrator": "This API key is not an administrator key on the slskd server. Choose the role set for the key in slskd.yml, or change it to administrator."
     }
   }
 }
