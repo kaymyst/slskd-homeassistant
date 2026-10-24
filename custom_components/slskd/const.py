@@ -5,3 +5,8 @@ CONF_API_KEY = "api_key"
 CONF_SCAN_INTERVAL = "scan_interval"
 
 DEFAULT_SCAN_INTERVAL = 10  # seconds
+CONF_API_KEY_ROLE = "api_key_role"
+
+ROLE_READONLY = "readonly"
+ROLE_READWRITE = "readwrite"
+API_KEY_ROLES = [ROLE_READONLY, ROLE_READWRITE]
