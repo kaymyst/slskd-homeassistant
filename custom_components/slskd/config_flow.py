@@ -15,19 +15,27 @@ from .const import (
 )
 
 
-def _check_key(host: str, api_key: str, role: str) -> str | None:
-    """Return an error key if the server can't be reached or the key lacks the chosen role."""
+def _probe_key(host: str, api_key: str) -> tuple[str | None, str | None]:
+    """Return (error key, detected role) for a host and API key."""
     from slskd_api import SlskdClient
     from .helpers import detect_role, get_server_state
 
     try:
         client = SlskdClient(host=host, api_key=api_key)
         if not get_server_state(client):
-            return "cannot_connect"
-        if role == ROLE_ADMINISTRATOR and detect_role(client) != ROLE_ADMINISTRATOR:
-            return "not_administrator"
+            return "cannot_connect", None
+        return None, detect_role(client)
     except Exception:
-        return "cannot_connect"
+        return "cannot_connect", None
+
+
+def _check_key(host: str, api_key: str, role: str) -> str | None:
+    """Return an error key if the server can't be reached or the key lacks the chosen role."""
+    error, detected = _probe_key(host, api_key)
+    if error:
+        return error
+    if role == ROLE_ADMINISTRATOR and detected != ROLE_ADMINISTRATOR:
+        return "not_administrator"
     return None
 
 
@@ -45,10 +53,10 @@ class SlskdConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             host = user_input[CONF_HOST]
             api_key = user_input[CONF_API_KEY]
-            role = user_input[CONF_API_KEY_ROLE]
 
-            # Test connection and key permissions
-            error = await self.hass.async_add_executor_job(_check_key, host, api_key, role)
+            # Test the connection and detect the key's role, so an administrator
+            # key isn't saved as readonly by accident (it can be changed in options)
+            error, role = await self.hass.async_add_executor_job(_probe_key, host, api_key)
             if error:
                 errors["base"] = error
 
@@ -61,7 +69,6 @@ class SlskdConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         data_schema = vol.Schema({
             vol.Required(CONF_HOST, default="http://localhost:5030"): str,
             vol.Required(CONF_API_KEY): str,
-            vol.Required(CONF_API_KEY_ROLE, default=ROLE_READONLY): vol.In(API_KEY_ROLES),
         })
 
         return self.async_show_form(

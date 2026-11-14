@@ -3,11 +3,10 @@
     "step": {
       "user": {
         "title": "Connect to slskd",
-        "description": "Choose the role set for this API key in slskd.yml. Search and download work with any role; the connect/disconnect switch needs an administrator key.",
+        "description": "The API key's role is detected automatically. Search and download work with any role; the connect/disconnect switch needs an administrator key.",
         "data": {
           "host": "Host URL",
-          "api_key": "API key",
-          "api_key_role": "API key role"
+          "api_key": "API key"
         }
       }
     },
