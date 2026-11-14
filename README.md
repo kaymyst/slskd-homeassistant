@@ -119,10 +119,9 @@ data:
 
 - Enter **host** (e.g., `http://[yourserverIP]:5030`)
 - Enter **API key**
-- Choose the **API key role** matching the key's `role` in slskd.yml (`readonly`, `readwrite` or `administrator`)
 - The binary sensor will appear automatically
 
-The `switch.slskd_connection` switch is only created for an `administrator` key (slskd 0.26.2+ only lets administrator keys read the server state and connect/disconnect). With a `readonly` or `readwrite` key, use `binary_sensor.slskd_connected` to see the connection state. The role can be changed later via the integration's **Configure** dialog. Entries set up before this option existed detect the role automatically on first start.
+The `switch.slskd_connection` switch is only created for an `administrator` key (slskd 0.26.2+ only lets administrator keys read the server state and connect/disconnect). With a `readonly` or `readwrite` key, use `binary_sensor.slskd_connected` to see the connection state. The key's role is detected automatically when the integration is added (and on first start for entries set up before the role option existed). It can be changed later via the integration's **Configure** dialog; if the switch is missing with an administrator key, check that the role there is set to `administrator`.
 
 ## slskd api key
 
